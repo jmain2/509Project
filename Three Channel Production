@@ -1,0 +1,354 @@
+// LIBRARIES //
+
+#include <SPI.h>
+#include <SD.h>
+
+// END LIBRARIES //
+
+
+
+// USER DEFINED VARIABLE //
+
+const unsigned long fill_time = 16 * 60000;                 //Time it takes for one channel to fill - must be in millisec
+const unsigned long drain_time = 9 * 60000;                 //Time it takes for one channel to drain - must be in millisec
+const unsigned long soak_time = 5 * 60000;                  //Time an individual channel will soak - must be in millisec
+const unsigned long wait_time = 60 * 60000;                 //Time delay between filling and draining executions - must be in millisec
+
+const unsigned long moisture_interval = 1 * 60000;          //Amount of time between moisture measurements
+
+int number_of_active_channels = 3;                          //Chose number of active channels
+
+// END USER DEFINED VARIABLES //
+
+
+
+// NON USER DEFINED VARIABLES - DO NOT CHANGE //
+
+const int chipSelect = 10;
+File myFile;
+int timestep = 0;
+
+int moisture1 = 0;
+int soilPin1 = A0;
+int soilPower1 = 1;
+
+int moisture2 = 0;
+int soilPin2 = A1;
+int soilPower2 = 2;
+
+int moisture3 = 0;
+int soilPin3 = A2;
+int soilPower3 = 3;
+
+int pumpPin = 10;
+int inValve1Pin = 9;
+int outValve1Pin = 8;
+int inValve2Pin = 7;
+int outValve2Pin = 6;
+int inValve3Pin = 5;
+int outValve3Pin = 4;
+
+unsigned long previousTime1 = 0;
+unsigned long previousTime2 = 0;
+unsigned long previousTime3 = 0;
+
+
+// END NON USER DEFINED VARIABLES //
+
+
+void setup() {
+
+  // SD CARD INITIALIZE //
+
+  SD.begin(chipSelect);
+  myFile = SD.open("datalog.txt", FILE_WRITE);            //open file
+  String headerString = "Time Step, Channel 1, Channel 2, Channel 3,";         //header line text
+  myFile.println(headerString);                           //write header line to file once
+  myFile.close();                                         //close file
+
+
+  // MOISTURE SENSOR INITIALIZE //
+
+  pinMode(soilPower1, OUTPUT);
+  digitalWrite(soilPower1, LOW);                          //turn off moisture sensor to start
+  timestep = 1;
+
+  // PUMP INITIALIZE //
+
+  pinMode(pumpPin, OUTPUT);
+  digitalWrite(pumpPin, LOW);
+
+  // VALVES INITIALIZE //
+
+
+  pinMode(inValve1Pin, OUTPUT);
+  pinMode(outValve1Pin, OUTPUT);
+
+  digitalWrite(inValve1Pin, HIGH);
+  digitalWrite(outValve1Pin, HIGH);
+
+  pinMode(inValve2Pin, OUTPUT);
+  pinMode(outValve2Pin, OUTPUT);
+
+  digitalWrite(inValve2Pin, HIGH);
+  digitalWrite(outValve2Pin, HIGH);
+
+  pinMode(inValve3Pin, OUTPUT);
+  pinMode(outValve3Pin, OUTPUT);
+
+  digitalWrite(inValve3Pin, HIGH);
+  digitalWrite(outValve3Pin, HIGH);
+
+}
+
+void loop() {
+
+  unsigned long currentTime = millis();
+
+
+  // MOISTURE MEASUREMENTS LOOP //
+
+  if (currentTime - previousTime1 >= moisture_interval) {
+
+    String dataString = "";                                    //create data string variable
+    dataString += String(timestep);                            //append the data string with the current timestep
+    dataString += ",";                                         //data separator
+
+    readSoil1();                                      //perform the readSoil function
+    dataString += String(moisture1);                          //append the data string with the output of the readSoil function
+    dataString += ",";                                        //data separator
+
+    readSoil2();                                      //perform the readSoil function
+    dataString += String(moisture2);                          //append the data string with the output of the readSoil function
+    dataString += ",";
+
+    readSoil3();                                      //perform the readSoil function
+    dataString += String(moisture3);                          //append the data string with the output of the readSoil function
+    dataString += ",";
+
+    myFile = SD.open("datalog.txt", FILE_WRITE);      //open file
+    myFile.println(dataString);                       //print the data string to the file on a new line
+    myFile.close();                                   //close file
+    timestep = timestep + 1;                          //increase the time step
+
+    previousTime1 = currentTime;
+
+  }
+
+  // END MOISTURE SENSING LOOP //
+
+  // CHANNEL CONTROL LOOP //
+
+  if (number_of_active_channels = 1) {
+
+    while (previousTime2 - currentTime <= fill_time) {
+      fill(2);
+      previousTime2 = millis();
+    }
+
+    while (previousTime2 - currentTime > fill_time && previousTime2 - currentTime <= fill_time + soak_time) {
+      soak(2);
+      previousTime2 = millis();
+
+    }
+    while (previousTime2 - currentTime > fill_time + soak_time && previousTime2 - currentTime <= fill_time + soak_time + drain_time) {
+      drain(2);
+      previousTime2 = millis();
+
+    }
+    for (previousTime3 - currentTime <= wait_time {
+    wait(1);
+      wait(2);
+      wait(3);
+    }
+  }
+
+  if (number_of_active_channels = 2) {
+
+    while (previousTime2 - currentTime <= fill_time) {
+      fill(1);
+      fill(3);
+      previousTime2 = millis();
+    }
+
+    while (previousTime2 - currentTime > fill_time && previousTime2 - currentTime <= fill_time + soak_time) {
+      soak(1);
+      soak(3);
+      previousTime2 = millis();
+
+    }
+    while (previousTime2 - currentTime > fill_time + soak_time && previousTime2 - currentTime <= fill_time + soak_time + drain_time) {
+      drain(1);
+      drain(3);
+      previousTime2 = millis();
+
+    }
+
+    for (previousTime3 - currentTime <= wait_time {
+    wait(1);
+      wait(2);
+      wait(3);
+    }
+
+  }
+
+  if (number_of_active_channels = 3) {
+
+
+    while (previousTime2 - currentTime <= fill_time) {
+      fill(1);
+      fill(2);
+      fill(3);
+      previousTime2 = millis();
+    }
+
+    while (previousTime2 - currentTime > fill_time && previousTime2 - currentTime <= fill_time + soak_time) {
+      soak(1);
+      soak(2);
+      soak(3);
+      previousTime2 = millis();
+
+    }
+    while (previousTime2 - currentTime > fill_time + soak_time && previousTime2 - currentTime <= fill_time + soak_time + drain_time) {
+      drain(1);
+      drain(2);
+      drain(3);
+      previousTime2 = millis();
+
+    }
+
+    for (previousTime3 - currentTime <= wait_time {
+    wait(1);
+      wait(2);
+      wait(3);
+    }
+  }
+
+
+
+  // END CHANNEL CONTROL LOOP //
+
+
+
+}
+
+
+
+// FUNCTION DEFINITION //
+
+int readSoil1()  //Function to take a moisture reading from sensor 1
+{
+
+  digitalWrite(soilPower1, HIGH);             //turn "On"
+  delay(10);                                  //wait 10 milliseconds
+  moisture1 = analogRead(soilPin1);           //Read the SIG value form sensor
+  digitalWrite(soilPower1, LOW);              //turn "Off"
+  return moisture1;                           //send current moisture value
+}
+
+int readSoil2()  //Function to take a moisture reading from sensor 1
+{
+
+  digitalWrite(soilPower2, HIGH);             //turn "On"
+  delay(10);                                  //wait 10 milliseconds
+  moisture2 = analogRead(soilPin1);           //Read the SIG value form sensor
+  digitalWrite(soilPower2, LOW);              //turn "Off"
+  return moisture2;                           //send current moisture value
+}
+
+int readSoil3()  //Function to take a moisture reading from sensor 1
+{
+
+  digitalWrite(soilPower3, HIGH);             //turn "On"
+  delay(10);                                  //wait 10 milliseconds
+  moisture3 = analogRead(soilPin1);           //Read the SIG value form sensor
+  digitalWrite(soilPower3, LOW);              //turn "Off"
+  return moisture3;                           //send current moisture value
+}
+
+
+int fill(channel_number) {
+
+  if (channel_number = 1) {
+    digitalWrite(pumpPin, HIGH);        //pump is on
+    digitalWrite(inValve1Pin, LOW);      //inlet valve is open
+    digitalWrite(outValve1Pin, HIGH);    //outlet valve is closed
+  }
+  if (channel_number = 2{
+  digitalWrite(pumpPin, HIGH);        //pump is on
+    digitalWrite(inValve2Pin, LOW);      //inlet valve is open
+    digitalWrite(outValve2Pin, HIGH);    //outlet valve is closed
+  }
+  if (channel_number = 3) {
+  digitalWrite(pumpPin, HIGH);        //pump is on
+    digitalWrite(inValve3Pin, LOW);      //inlet valve is open
+    digitalWrite(outValve3Pin, HIGH);    //outlet valve is closed
+  }
+
+}
+
+
+
+int soak(channel_number)
+{
+
+  if (channel_number = 1) {
+    digitalWrite(pumpPin, LOW);        //pump is off
+    digitalWrite(inValve1Pin, HIGH);      //inlet valve is closed
+    digitalWrite(outValve1Pin, HIGH);    //outlet valve is closed
+  }
+  if (channel_number = 2{
+  digitalWrite(pumpPin, LOW);        //pump is off
+    digitalWrite(inValve2Pin, HIGH);      //inlet valve is closed
+    digitalWrite(outValve2Pin, HIGH);    //outlet valve is closed
+  }
+  if (channel_number = 3) {
+  digitalWrite(pumpPin, LOW);        //pump is off
+    digitalWrite(inValve3Pin, HIGH);      //inlet valve is closed
+    digitalWrite(outValve3Pin, HIGH);    //outlet valve is closed
+  }
+
+
+}
+
+int drain(channel_number) {
+
+
+  if (channel_number = 1) {
+    digitalWrite(pumpPin, LOW);        //pump is off
+    digitalWrite(inValve1Pin, HIGH);      //inlet valve is closed
+    digitalWrite(outValve1Pin, LOW);    //outlet valve is open
+  }
+  if (channel_number = 2{
+  digitalWrite(pumpPin, LOW);        //pump is off
+    digitalWrite(inValve2Pin, HIGH);      //inlet valve is closed
+    digitalWrite(outValve2Pin, LOW);    //outlet valve is open
+  }
+  if (channel_number = 3) {
+  digitalWrite(pumpPin, LOW);        //pump is off
+    digitalWrite(inValve3Pin, HIGH);      //inlet valve is closed
+    digitalWrite(outValve3Pin, LOW);    //outlet valve is open
+  }
+
+
+}
+
+int wait(channel_number) {
+
+  digitalWrite(pumpPin, LOW);
+
+  if (channel_number = 1) {
+    digitalWrite(inValve1Pin, HIGH);
+    digitalWrite(outValve1Pin, HIGH);
+  }
+  if (channel_number = 2{
+  digitalWrite(inValve2Pin, HIGH);
+    digitalWrite(outValve2Pin, HIGH);
+  }
+  if (channel_number = 3) {
+  digitalWrite(inValve3Pin, HIGH);
+    digitalWrite(outValve3Pin, HIGH);
+  }
+}
+
+// END FUNCTION DEFINITON //
